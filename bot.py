@@ -1,8 +1,28 @@
 import os
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
 from telegram import Update
 from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
 
-BOT_TOKEN = os.environ["8755049163:AAGg9a5ExYGoWU4pOhHP8lX-yY7beFcjCe0"]
+BOT_TOKEN = os.environ["BOT_TOKEN"]
+
+
+class HealthHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"OK")
+
+    def log_message(self, format, *args):
+        pass
+
+
+def run_health_server():
+    port = int(os.environ.get("PORT", 10000))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    server.serve_forever()
+
 
 async def delete_join_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
@@ -23,6 +43,9 @@ async def delete_join_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
             print("LEFT removed")
         except Exception:
             print("FAILED to remove LEFT")
+
+
+threading.Thread(target=run_health_server, daemon=True).start()
 
 app = ApplicationBuilder().token(BOT_TOKEN).build()
 
