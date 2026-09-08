@@ -13,12 +13,10 @@ BOT_TOKEN = os.environ["BOT_TOKEN"]
 last_activity = {"time": datetime.now(timezone.utc), "detail": "starting up"}
 _lock = threading.Lock()
 
-
 def record_activity(detail):
     with _lock:
         last_activity["time"] = datetime.now(timezone.utc)
         last_activity["detail"] = detail
-
 
 class HealthHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -33,34 +31,30 @@ class HealthHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass
 
-
 def run_health_server():
     port = int(os.environ.get("PORT", 10000))
     server = HTTPServer(("0.0.0.0", port), HealthHandler)
     server.serve_forever()
-
 
 def run_heartbeat(interval_seconds=300):
     while True:
         time.sleep(interval_seconds)
         with _lock:
             detail = last_activity["detail"]
-        print(f"Heartbeat: bot alive, last activity: {detail}")
-
+        print(f"Heartbeat: bot alive, last activity: {detail}", flush=True)
 
 def run_self_ping(interval_seconds=600):
     url = os.environ.get("RENDER_EXTERNAL_URL")
     if not url:
-        print("Self-ping skipped: RENDER_EXTERNAL_URL not set")
+        print("Self-ping skipped: RENDER_EXTERNAL_URL not set", flush=True)
         return
     while True:
         time.sleep(interval_seconds)
         try:
             urllib.request.urlopen(url, timeout=10)
-            print("Self-ping OK")
+            print("Self-ping OK", flush=True)
         except Exception as e:
-            print(f"Self-ping FAILED: {e}")
-
+            print(f"Self-ping FAILED: {e}", flush=True)
 
 async def delete_join_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.effective_message
@@ -71,21 +65,20 @@ async def delete_join_leave(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if msg.new_chat_members:
         try:
             await msg.delete()
-            print("JOIN removed")
+            print("JOIN removed", flush=True)
             record_activity("removed JOIN message")
         except Exception:
-            print("FAILED to remove JOIN")
+            print("FAILED to remove JOIN", flush=True)
             record_activity("FAILED to remove JOIN message")
 
     elif msg.left_chat_member:
         try:
             await msg.delete()
-            print("LEFT removed")
+            print("LEFT removed", flush=True)
             record_activity("removed LEFT message")
         except Exception:
-            print("FAILED to remove LEFT")
+            print("FAILED to remove LEFT", flush=True)
             record_activity("FAILED to remove LEFT message")
-
 
 threading.Thread(target=run_health_server, daemon=True).start()
 threading.Thread(target=run_heartbeat, daemon=True).start()
@@ -98,5 +91,5 @@ app.add_handler(MessageHandler(
     delete_join_leave
 ))
 
-print("Bot running...")
+print("Bot running...", flush=True)
 app.run_polling()
